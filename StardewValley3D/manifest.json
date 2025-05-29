@@ -1,0 +1,11 @@
+﻿{
+  "Name": "Staradew Valley 3D",
+  "Author": "NRTnarathip",
+  "Version": "0.0.1",
+  "Description": "project x 3d",
+  "UniqueID": "NRTnarathip.StardewValley3D",
+  "EntryDll": "StardewValley3D.dll",
+  "MinimumApiVersion": "3.13.0",
+  "UpdateKeys": [ "Nexus:-1" ],
+  "Dependencies": []
+}
