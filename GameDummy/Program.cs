@@ -5,30 +5,39 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        //NewThreadClient();
-        //NewThreadServer();
-        await Task.Run(NewThreadClientStardewValley);
+
+#if false
+        NewThreadClient();
+        NewThreadServer();
         while (true)
         {
-            Thread.Sleep(1000);
-            Console.WriteLine("main thread wait tick.");
+            await Task.Delay(1000);
+            Console.WriteLine("main thread wait 1 sec.");
         }
+#else
+        await Task.Run(NewThreadClientStardewValley);
+#endif
     }
 
     private static async Task NewThreadClientStardewValley()
     {
         var client = new ClientPipe("StardewValley");
+        client.StartConnect();
 
-        client.RegisterEvent("Events.Display.RenderedStep", (args) =>
+        client.RegisterEvent("Helper.Events.Display.RenderedStep", (RenderSteps step) =>
         {
-            var step = (RenderSteps)args[0];
-            client.Log("on rendered step: " + step);
+            client.Log("on RenderedStep: " + step);
         });
+
+        client.RegisterEvent("Game1.ticks", (int tick) =>
+        {
+            client.Log("Game1.ticks: " + tick);
+        });
+
 
         while (true)
         {
             await Task.Delay(1);
-            client.Log("tick");
             client.ProcessMsgFactory();
         }
     }
@@ -38,6 +47,7 @@ internal class Program
         new Thread(() =>
         {
             var client = new ClientPipe("Game");
+            client.StartConnect();
 
             client.RegisterEvent("Game.TickCounter", (object[] args) =>
             {
@@ -65,7 +75,8 @@ internal class Program
         {
 
             var sv = new ServerPipe("Game");
-            var random = new Random();
+            sv.StartHost();
+
             int tickCounter = 0;
             sv.Log("Start Server Pipe");
             while (true)

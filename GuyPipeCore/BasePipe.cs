@@ -1,38 +1,35 @@
 ﻿using MessagePack;
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 
 namespace GuyPipeCore;
 
-public abstract class BaseGuyPipe
+public abstract class BasePipe
 {
     public readonly PipeStream pipeStream;
     public readonly bool isServer;
     public readonly bool isClient;
-    public PipeDirection pipeDirection;
 
-    public BaseGuyPipe(string pipeName, bool isServer)
+    public BasePipe(string pipeName, bool isServer)
     {
         this.isServer = isServer;
         this.isClient = !isServer;
-        this.pipeDirection = isServer ? PipeDirection.InOut : PipeDirection.In;
 
         if (isServer)
         {
-            var server = new NamedPipeServerStream(pipeName, pipeDirection);
-            pipeStream = server;
-
-            Log("waiting server connection..");
-            server.WaitForConnection();
-            Log("server connected!");
+            pipeStream = new NamedPipeServerStream(
+                pipeName,
+                PipeDirection.Out
+            );
         }
         else
         {
-            var client = new NamedPipeClientStream(pipeName);
-            pipeStream = client;
-
-            Log("waiting client connection...");
-            client.Connect();
-            Log("client connected!");
+            pipeStream = new NamedPipeClientStream(
+                ".",
+                pipeName,
+                PipeDirection.In
+            );
         }
     }
 

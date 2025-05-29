@@ -18,20 +18,24 @@ namespace StardewValley3D
             Console.WriteLine("Starting NamePipe Server...");
             //setup game pipe
             serverPipe = new("StardewValley");
+            serverPipe.StartHost();
 
             // setup game events
             helper.Events.Display.RenderedStep += Display_RenderedStep;
-            helper.Events.Display.Rendered += Display_Rendered; ;
+            helper.Events.Display.Rendered += Display_Rendered;
         }
 
         private void Display_Rendered(object? sender, StardewModdingAPI.Events.RenderedEventArgs e)
         {
+            serverPipe.SendEvent("Game1.ticks", [Game1.ticks]);
+
+
             serverPipe.EndMessageFactory();
         }
 
         void Display_RenderedStep(object? sender, StardewModdingAPI.Events.RenderedStepEventArgs e)
         {
-            serverPipe.SendEvent("Events.Display.RenderedStep", [e.Step]);
+            serverPipe.SendEvent("Helper.Events.Display.RenderedStep", [e.Step]);
         }
     }
 }
