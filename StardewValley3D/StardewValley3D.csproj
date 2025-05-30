@@ -5,16 +5,27 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
+		<EnableHarmony>true</EnableHarmony>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="MonoMod.Common" Version="22.6.3.1" />
 		<PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+		<PackageReference Include="SkiaSharp" Version="3.119.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\GuyPipeCore\GuyPipeCore.csproj">
-			<Private>True</Private>
-		</ProjectReference>
+		<ProjectReference Include="..\GameDummy\GameDummy.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Krafs.Publicizer" Version="2.2.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+	<ItemGroup>
+		<Publicize Include="MonoGame.Framework" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -9,16 +9,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\GuyPipeCore\GuyPipeCore.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Reference Include="Stardew Valley">
-	    <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Stardew Valley\Stardew Valley.dll</HintPath>
-	  </Reference>
-	  <Reference Include="StardewModdingAPI">
-	    <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Stardew Valley\StardewModdingAPI.dll</HintPath>
-	  </Reference>
+		<PackageReference Include="LiteNetLib" Version="1.3.1" />
+		<PackageReference Include="MessagePack" Version="3.1.3" />
 	</ItemGroup>
 
 </Project>

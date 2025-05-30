@@ -1,103 +1,62 @@
-﻿using GuyPipeCore;
-using StardewValley.Mods;
+﻿using System.Drawing;
 
-internal class Program
+static class Program
 {
     private static async Task Main(string[] args)
     {
+        Task.Run(async () =>
+        {
+            var monoApp = new MonoApp();
+            if (monoApp.Start() is false)
+            {
+                return;
+            }
 
-#if false
-        NewThreadClient();
-        NewThreadServer();
+            while (true)
+            {
+                monoApp.PerformUpdate();
+                monoApp.SendEvent("Game1.ticks", [monoApp.tickCounter]);
+                var screenBytes = new byte[30_000];
+                monoApp.SendEvent("Game1.screen_1", [screenBytes]);
+                monoApp.SendEvent("Game1.screen_2", [screenBytes]);
+                monoApp.SendEvent("Game1.screen_3", [new byte[65_530]]);
+                await Task.Delay(500);
+            }
+        });
+
+        Task.Run(async () =>
+        {
+            var client = new UnityApp();
+            client.Start();
+
+            client.RegisterEvent("Game1.ticks", (int ticks) =>
+            {
+                client.Log("game1.ticks: " + ticks);
+            });
+
+            client.RegisterEvent("Game1.screen_1", (byte[] screenColors) =>
+            {
+                client.Log(" Game1.screen_1 colors: " + screenColors.Length);
+            });
+            client.RegisterEvent("Game1.screen_2", (byte[] screenColors) =>
+            {
+                client.Log(" Game1.screen_2 colors: " + screenColors.Length);
+            });
+            client.RegisterEvent("Game1.screen_3", (byte[] screenColors) =>
+            {
+                client.Log(" Game1.screen_3 colors: " + screenColors.Length);
+            });
+
+            while (true)
+            {
+                client.PerformUpdate();
+                await Task.Delay(100);
+            }
+        });
+
         while (true)
         {
             await Task.Delay(1000);
-            Console.WriteLine("main thread wait 1 sec.");
         }
-#else
-        await Task.Run(NewThreadClientStardewValley);
-#endif
-    }
-
-    private static async Task NewThreadClientStardewValley()
-    {
-        var client = new ClientPipe("StardewValley");
-        client.StartConnect();
-
-        client.RegisterEvent("Helper.Events.Display.RenderedStep", (RenderSteps step) =>
-        {
-            client.Log("on RenderedStep: " + step);
-        });
-
-        client.RegisterEvent("Game1.ticks", (int tick) =>
-        {
-            client.Log("Game1.ticks: " + tick);
-        });
-
-
-        while (true)
-        {
-            await Task.Delay(1);
-            client.ProcessMsgFactory();
-        }
-    }
-
-    static void NewThreadClient()
-    {
-        new Thread(() =>
-        {
-            var client = new ClientPipe("Game");
-            client.StartConnect();
-
-            client.RegisterEvent("Game.TickCounter", (object[] args) =>
-            {
-                int tick = (int)args[0];
-                client.Log("on server game ticks: " + tick);
-            });
-
-            client.ProcessMsgFactory();
-
-            while (true)
-            {
-                Thread.Sleep(500);
-
-                client.Log("on game update");
-                client.ProcessMsgFactory();
-                client.Log("game updated");
-
-                // my code logic
-            }
-        }).Start();
-    }
-    static void NewThreadServer()
-    {
-        new Thread(() =>
-        {
-
-            var sv = new ServerPipe("Game");
-            sv.StartHost();
-
-            int tickCounter = 0;
-            sv.Log("Start Server Pipe");
-            while (true)
-            {
-                Thread.Sleep(1);
-                tickCounter++;
-
-                sv.Log("Server Game Tick: " + tickCounter);
-
-                sv.BeginMessageFactory();
-
-                // my code logic
-                sv.SendEvent("Game.TickCounter", [tickCounter]);
-                for (var i = 0; i < 10; i++)
-                {
-                    sv.SendEvent("Game.Render", ["player:" + i]);
-                }
-
-                sv.EndMessageFactory();
-            }
-
-        }).Start();
     }
 }

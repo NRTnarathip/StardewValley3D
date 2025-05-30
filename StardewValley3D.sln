@@ -9,11 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StardewValley3D", "StardewV
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameDummy", "GameDummy\GameDummy.csproj", "{61EE2243-AACF-442A-ABA6-1299532EB9D4}"
-	ProjectSection(ProjectDependencies) = postProject
-		{8E30B18A-6D10-4484-A4A9-9B2A217A64EB} = {8E30B18A-6D10-4484-A4A9-9B2A217A64EB}
-	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuyPipeCore", "GuyPipeCore\GuyPipeCore.csproj", "{8E30B18A-6D10-4484-A4A9-9B2A217A64EB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,10 +24,6 @@ Global
 		{61EE2243-AACF-442A-ABA6-1299532EB9D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61EE2243-AACF-442A-ABA6-1299532EB9D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61EE2243-AACF-442A-ABA6-1299532EB9D4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8E30B18A-6D10-4484-A4A9-9B2A217A64EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8E30B18A-6D10-4484-A4A9-9B2A217A64EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8E30B18A-6D10-4484-A4A9-9B2A217A64EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8E30B18A-6D10-4484-A4A9-9B2A217A64EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
