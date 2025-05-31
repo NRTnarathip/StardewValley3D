@@ -58,7 +58,7 @@ internal static class TextureUtils
             }
         }
         texture.SetData(colorPixels);
-        var saveDir = Path.Combine(MainEntry.HelperSingleton.DirectoryPath, "image_saves");
+        var saveDir = Path.Combine(ModEntry.HelperSingleton.DirectoryPath, "image_saves");
         fileName += ".png";
         var fullPath = Path.Combine(saveDir, fileName);
         if (Directory.Exists(saveDir) is false)

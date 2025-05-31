@@ -12,30 +12,6 @@ namespace StardewValley3D;
 [HarmonyPatch]
 static class GameHookRenderer
 {
-    static RenderTarget2D myRenderTarget;
-    static RenderTarget2D backupRenderTarget;
-
-    static Furniture lastFurnitureDraw;
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(Furniture), "draw")]
-    static void Prefix_Furniture_draw(
-        Furniture __instance,
-        SpriteBatch spriteBatch, int x, int y, float alpha = 1f)
-    {
-        // cache
-        lastFurnitureDraw = __instance;
-    }
-
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(Furniture), "draw")]
-    static void Postfix_Furniture_draw(
-      Furniture __instance,
-      SpriteBatch spriteBatch, int x, int y, float alpha = 1f)
-    {
-        lastFurnitureDraw = null;
-    }
-
     [HarmonyPostfix]
     [HarmonyPatch(typeof(SpriteBatch), "Draw", [
         typeof(Texture2D),
@@ -60,36 +36,24 @@ static class GameHookRenderer
         SpriteEffects effects,
         float layerDepth)
     {
-        if (lastFurnitureDraw is null)
-            return;
+        if (FurnitureRenderer.lastFurnitureDraw is not null)
+        {
+            FurnitureRenderer.OnDraw(__instance, texture,
+                position, sourceRectangle.Value,
+                color, rotation,
+                origin, scale,
+                effects, layerDepth
+                );
+        }
 
-        //setup
-        var server = MainEntry.server;
-        var furniture = lastFurnitureDraw;
-        var srcRect = sourceRectangle.Value;
-        Console.WriteLine($"drawing furniture name: {furniture.name}");
-        //Console.WriteLine($" - texture width: {texture.width}, height: {texture.height}");
-        //Console.WriteLine($" - position: {position}");
-        //Console.WriteLine($" - src rect: {srcRect.Size}");
-        //Console.WriteLine($" - origin: {origin}");
-        //Console.WriteLine($" - scale: {scale}");
-
-        // ready
-        Color[] pixels = new Color[srcRect.Width * srcRect.Height];
-        var st = Stopwatch.StartNew();
-        TextureUtils.GetPixels(texture, srcRect, pixels);
-        st.Stop();
-        byte[] pixelBytes = new byte[pixels.Length * 4];
-        TextureUtils.CopyColorsToBytes(pixels, ref pixelBytes);
-
-
-        server.SendEvent("Furniture:SpriteBatch:Draw()", [
-            furniture.name,
-            pixelBytes,
-            srcRect.ToRect(),
-            position.ToVec2(),
-            scale.ToVec2(),
-            origin.ToVec2(),
-        ]);
+        else if (FarmerRenderer.lastFarmerDraw is not null)
+        {
+            FarmerRenderer.OnDraw(__instance, texture,
+                position, sourceRectangle.Value,
+                color, rotation,
+                origin, scale,
+                effects, layerDepth
+                );
+        }
     }
 }

@@ -1,62 +1,53 @@
 ﻿using System.Drawing;
+using System.Threading.Tasks;
 
-namespace GameDummy;
-
-static class Program
+namespace GameDummy
 {
-    private static async Task Main(string[] args)
+    static class Program
     {
-        Task.Run(async () =>
+        private static async Task Main(string[] args)
         {
-            var gameApp = new BaseAppNetwork(true);
-            if (gameApp.Start() is false)
+            Task.Run(async () =>
             {
-                return;
-            }
+                var gameApp = new BaseAppNetwork(true);
+                if (gameApp.Start() is false)
+                {
+                    return;
+                }
 
-            while (true)
+                while (true)
+                {
+                    gameApp.PerformUpdate();
+                    var screenBytes = new byte[10_000];
+                    var pos = new System.Numerics.Vector2(22, 99);
+                    var scale = new System.Numerics.Vector2(22, 99);
+                    //gameApp.SendEvent("draw", [
+                    //    "hello guy",
+                    //    screenBytes,
+                    //    new Rectangle(0, 0, 155, 155),
+                    //    pos,
+                    //    scale
+                    //]);
+                    await Task.Delay(500);
+                }
+            });
+
+            Task.Run(async () =>
             {
-                gameApp.PerformUpdate();
-                var screenBytes = new byte[10_000];
-                var pos = new System.Numerics.Vector2(22, 99);
-                var scale = new System.Numerics.Vector2(22, 99);
-                gameApp.SendEvent("draw", [
-                    "hello guy",
-                    screenBytes,
-                    new Rectangle(0, 0, 155, 155),
-                    pos,
-                    scale
-                ]);
-                await Task.Delay(500);
-            }
-        });
+                var client = new BaseAppNetwork(false);
+                client.Start();
 
-        Task.Run(async () =>
-        {
-            var client = new BaseAppNetwork(false);
-            client.Start();
-            client.RegisterEvent("draw", (
-                string say,
-                byte[] screenColors,
-                Rectangle srcRect,
-                    System.Numerics.Vector2 pos,
-                    System.Numerics.Vector2 scale) =>
-            {
-                client.Log("on draw, pos: " + pos);
-                client.Log(" - rect: " + srcRect);
-
+                while (true)
+                {
+                    client.PerformUpdate();
+                    await Task.Delay(100);
+                }
             });
 
             while (true)
             {
-                client.PerformUpdate();
-                await Task.Delay(100);
+                await Task.Delay(1000);
             }
-        });
-
-        while (true)
-        {
-            await Task.Delay(1000);
         }
     }
 }

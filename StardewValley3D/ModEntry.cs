@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace StardewValley3D;
 
-public class MainEntry : Mod
+public class ModEntry : Mod
 {
     public static BaseAppNetwork server;
     public static BaseAppNetwork client;
@@ -27,18 +27,19 @@ public class MainEntry : Mod
 #if true
         client = new(false);
         client.Start();
-        client.RegisterEvent("Furniture:SpriteBatch:Draw()", (
-            string furnitureName,
-            byte[] rawPixels,
-            System.Drawing.Rectangle srcRect,
-            System.Numerics.Vector2 pos,
-            System.Numerics.Vector2 scale,
-            System.Numerics.Vector2 origin
-        ) =>
-        {
-            client.Log($"on furniture draw(), name: {furnitureName}, pixels len: {rawPixels.Length}");
-            //GameHookRenderer.SavePixelsToPng(pixels, width, height, name);
-        });
+        //client.RegisterEvent("Furniture:SpriteBatch:Draw()", (
+        //    string furnitureName,
+        //    byte[] rawPixels,
+        //    System.Drawing.Rectangle srcRect,
+        //    System.Numerics.Vector2 pos,
+        //    System.Numerics.Vector2 scale,
+        //    System.Numerics.Vector2 origin,
+        //    int entityID
+        //) =>
+        //{
+        //    client.Log($"on furniture draw(), name: {furnitureName}, pixels len: {rawPixels.Length}");
+        //    //GameHookRenderer.SavePixelsToPng(pixels, width, height, name);
+        //});
 #endif
 
         // setup game events
@@ -56,16 +57,7 @@ public class MainEntry : Mod
 
     private void GameLoop_UpdateTicked(object? sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
     {
-        server.SendEvent("Game1.ticks", [Game1.ticks]);
-        // test
-        server.SendEvent("Furniture:SpriteBatch:Draw()", [
-            "hello_test_sprite",
-            new byte[22*22*4],
-            new Rectangle(0, 0, 22, 22),
-            new Vector2(22, 11),
-            new Vector2(4, 4),
-            new Vector2(0, 0),
-        ]);
+        server.SendEvent("Game1.ticks", [Game1.ticks], LiteNetLib.DeliveryMethod.Unreliable);
     }
 
     private void Display_Rendered(object? sender, StardewModdingAPI.Events.RenderedEventArgs e)

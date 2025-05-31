@@ -14,7 +14,7 @@ namespace GameDummy
         public const int port = 10055;
         public const string address = "localhost";
 
-        NetManager netManager;
+        public NetManager netManager { get; private set; }
         NetPacketProcessor packetProcessor = new();
         readonly bool isServer;
         readonly bool isClient;
@@ -29,11 +29,8 @@ namespace GameDummy
                 AutoRecycle = true,
                 EnableStatistics = true,
                 IPv6Enabled = false,
-                SimulateLatency = true,
-                SimulationMinLatency = 50,
-                SimulationMaxLatency = 60,
+                SimulateLatency = false,
                 SimulatePacketLoss = false,
-                SimulationPacketLossChance = 10
             };
 
             // registry first!!
@@ -71,16 +68,13 @@ namespace GameDummy
         {
             try
             {
-                Console.WriteLine("try deserialize msg: " + msg.name);
+                //Console.WriteLine("try deserialize msg: " + msg.name);
                 var args = msg.UnpackArgs();
 
                 if (m_onMessageDelegateMap.TryGetValue(msg.name, out var callback))
                 {
                     try
                     {
-                        Console.WriteLine("trey invoke callback msg: " + msg.name);
-                        Console.WriteLine(" - args len: " + args.Length);
-
                         callback.DynamicInvoke(args);
                     }
                     catch (Exception ex)
@@ -97,6 +91,11 @@ namespace GameDummy
 
         NetDataWriter m_sendEventWriter = new();
         public void SendEvent(string name, object[] args)
+        {
+            SendEvent(name, args, DeliveryMethod.ReliableOrdered);
+        }
+        public void SendEvent(string name, object[] args,
+            DeliveryMethod deliveryMethod)
         {
             try
             {
@@ -120,7 +119,7 @@ namespace GameDummy
 
                 m_sendEventWriter.Reset();
                 packetProcessor.Write(m_sendEventWriter, msg);
-                netManager.SendToAll(m_sendEventWriter, DeliveryMethod.ReliableOrdered);
+                netManager.SendToAll(m_sendEventWriter, deliveryMethod);
             }
             catch (Exception ex)
             {
