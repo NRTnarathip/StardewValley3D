@@ -27,6 +27,7 @@ public class ModEntry : Mod
 #if true
         client = new(false);
         client.Start();
+        client.EnableAnnotation(this);
         //client.RegisterEvent("Furniture:SpriteBatch:Draw()", (
         //    string furnitureName,
         //    byte[] rawPixels,
@@ -47,6 +48,13 @@ public class ModEntry : Mod
         helper.Events.Display.Rendered += Display_Rendered;
         helper.Events.GameLoop.UpdateTicked += GameLoop_UpdateTicked;
         helper.Events.GameLoop.UpdateTicking += GameLoop_UpdateTicking;
+
+    }
+
+    [OnMessage("Game1.ticks")]
+    void OnGameTicks(int ticks)
+    {
+        Console.WriteLine("on msg Game1.ticks: " + ticks);
     }
 
     private void GameLoop_UpdateTicking(object? sender, StardewModdingAPI.Events.UpdateTickingEventArgs e)

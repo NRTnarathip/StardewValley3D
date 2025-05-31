@@ -47,7 +47,7 @@ internal static class FarmerRenderer
         OnDrawCounter++;
 
         var server = ModEntry.server;
-        string entityIdentifier = $"Farmer:{lastFarmerDraw.GetHashCode()}:{OnDrawCounter}";
+        string entityIdentifier = $"Farmer:{lastFarmerDraw.GetHashCode()}";
 
         //Console.WriteLine($" pos: {drawPos}");
         //Console.WriteLine($" origin: {origin}");
@@ -60,11 +60,12 @@ internal static class FarmerRenderer
         byte[] pixelBytes = new byte[pixels.Length * 4];
         TextureUtils.CopyColorsToBytes(pixels, ref pixelBytes);
 
-        var colorDotnet =  System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
+        var colorDotnet = System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
         server.SendEvent("Farmer:Draw()", [
             entityIdentifier,
             pixelBytes,
             new System.Numerics.Vector2(srcRect.Width, srcRect.Height),
+            OnDrawCounter,
             drawPos.ToVec2(),
             origin.ToVec2(),
             colorDotnet,

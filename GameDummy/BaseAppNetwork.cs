@@ -4,6 +4,7 @@ using MessagePack;
 using MessagePack.Resolvers;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
@@ -58,6 +59,11 @@ namespace GameDummy
             return true;
         }
 
+        List<ObjectEnableAnnotation> objectListBindAnnotation = new();
+        public void EnableAnnotation(object objectToUse)
+        {
+            objectListBindAnnotation.Add(new ObjectEnableAnnotation(objectToUse));
+        }
 
         Dictionary<string, Delegate> m_onMessageDelegateMap = new();
         public void RegisterEvent(string msgName, Delegate func)
@@ -80,6 +86,34 @@ namespace GameDummy
                     catch (Exception ex)
                     {
                         Log(ex);
+                    }
+                }
+                else
+                {
+                    foreach (var objAnnotation in objectListBindAnnotation)
+                    {
+                        var methods = objAnnotation.GetMethodsFromAnnotationFullName(OnMessageAttribute.TypeFullName);
+                        if (methods is not null)
+                        {
+                            foreach (var method in methods)
+                            {
+                                var onMessageAttribute = objAnnotation
+                                    .GetBaseAnnotationAttributesFromMethodInfo(method).First()
+                                    as OnMessageAttribute;
+
+                                if (onMessageAttribute.MessageName == msg.name)
+                                {
+                                    try
+                                    {
+                                        method.Invoke(objAnnotation.obj, args);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log(ex);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

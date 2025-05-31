@@ -72,5 +72,6 @@ namespace GameDummy
              = MessagePackSerializerOptions.Standard
                 .WithCompression(MessagePackCompression.Lz4BlockArray)
                 .WithResolver(CustomMsgPackFormatter.resolver);
+
     }
 }
