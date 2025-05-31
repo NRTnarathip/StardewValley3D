@@ -1,0 +1,3 @@
+[*.cs]
+# ปิดเตือน method/field ที่ไม่ได้ใช้
+dotnet_diagnostic.IDE0051.severity = none   # unused private method

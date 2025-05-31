@@ -12,7 +12,7 @@ namespace StardewValley3D;
 
 public class MainEntry : Mod
 {
-    public static MonoApp server;
+    public static StardewApp server;
     public static UnityApp client;
 
     Harmony harmony = new("StardewValley3D");

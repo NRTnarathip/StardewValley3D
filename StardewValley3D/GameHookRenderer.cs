@@ -15,36 +15,16 @@ static class GameHookRenderer
     static RenderTarget2D myRenderTarget;
     static RenderTarget2D backupRenderTarget;
 
+    static Furniture lastFurnitureDraw;
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Furniture), "draw")]
     static void Prefix_Furniture_draw(
         Furniture __instance,
         SpriteBatch spriteBatch, int x, int y, float alpha = 1f)
     {
-        backupRenderTarget = (RenderTarget2D)Game1.graphics
-            .GraphicsDevice.GetRenderTargets().First().RenderTarget;
-
-
-        if (myRenderTarget is null
-            || myRenderTarget.Height * myRenderTarget.Width
-                != backupRenderTarget.Height * backupRenderTarget.Width)
-        {
-            myRenderTarget = new RenderTarget2D(
-                Game1.graphics.GraphicsDevice,
-                backupRenderTarget.Width,
-                backupRenderTarget.Height);
-        }
-
-        Game1.graphics.GraphicsDevice.SetRenderTarget(myRenderTarget);
-        Game1.graphics.GraphicsDevice.Clear(Color.Transparent);
-
-        spriteBatch.End();
-        spriteBatch.Begin(
-            SpriteSortMode.Deferred,
-            BlendState.AlphaBlend,
-            SamplerState.PointClamp,
-            DepthStencilState.Default,
-            RasterizerState.CullNone);
+        // cache
+        lastFurnitureDraw = __instance;
     }
 
     [HarmonyPostfix]
@@ -53,57 +33,68 @@ static class GameHookRenderer
       Furniture __instance,
       SpriteBatch spriteBatch, int x, int y, float alpha = 1f)
     {
-        spriteBatch.End();
-
-        // restore
-        Game1.graphics.GraphicsDevice.SetRenderTarget(backupRenderTarget);
-        spriteBatch.Begin();
-
-
-        var width = myRenderTarget.Width;
-        var height = myRenderTarget.Height;
-        var bytes = new byte[width * height * 4];
-        var st = Stopwatch.StartNew();
-        myRenderTarget.GetPixelsFaster(ref bytes);
-        st.Stop();
-        //Console.WriteLine($"Read Pixels time: {st.Elapsed.TotalMilliseconds}ms");
-        //Console.WriteLine($" width: {width}, height: {height}");
-
-        var server = MainEntry.server;
-        server.SendEvent("Furniture.draw()", [bytes, width, height, __instance.name]);
+        lastFurnitureDraw = null;
     }
 
-
-    internal static void SavePixelsToPng(byte[] bytePixels, int width, int height, string fileName)
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(SpriteBatch), "Draw", [
+        typeof(Texture2D),
+        typeof(Vector2),
+        typeof(Rectangle?),
+        typeof(Color),
+        typeof(float),
+        typeof(Vector2),
+        typeof(Vector2),
+        typeof(SpriteEffects),
+        typeof(float)
+    ])]
+    static void Postfix_SpriteBatch_draw(
+        SpriteBatch __instance,
+        Texture2D texture,
+        Vector2 position,
+        Rectangle? sourceRectangle,
+        Color color,
+        float rotation,
+        Vector2 origin,
+        Vector2 scale,
+        SpriteEffects effects,
+        float layerDepth)
     {
-        var texture = new Texture2D(Game1.graphics.GraphicsDevice, width, height);
-        Color[] colorPixels = new Color[width * height];
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                int i = y * width + x;
-                var r = bytePixels[i * 4 + 0];
-                var g = bytePixels[i * 4 + 1];
-                var b = bytePixels[i * 4 + 2];
-                var a = bytePixels[i * 4 + 3];
-                colorPixels[i].R = r;
-                colorPixels[i].G = g;
-                colorPixels[i].B = b;
-                colorPixels[i].A = a;
-            }
-        }
-        texture.SetData(colorPixels);
-        var saveDir = Path.Combine(MainEntry.HelperSingleton.DirectoryPath, "image_saves");
-        fileName += ".png";
-        var fullPath = Path.Combine(saveDir, fileName);
-        if (Directory.Exists(saveDir) is false)
-            Directory.CreateDirectory(saveDir);
+        if (lastFurnitureDraw is null)
+            return;
 
-        using (var stream = File.Open(fullPath, FileMode.Create))
-        {
-            texture.SaveAsPng(stream, width, height);
-            Console.WriteLine("saved png: " + fileName);
-        }
+        //setup
+        var server = MainEntry.server;
+        var furniture = lastFurnitureDraw;
+        var srcRect = sourceRectangle.Value;
+        //Console.WriteLine($"drawing furniture name: {furniture.name}");
+        //Console.WriteLine($" - texture width: {texture.width}, height: {texture.height}");
+        //Console.WriteLine($" - position: {position}");
+        //Console.WriteLine($" - src rect: {srcRect.Size}");
+        //Console.WriteLine($" - origin: {origin}");
+        //Console.WriteLine($" - scale: {scale}");
+
+        // ready
+        Color[] pixels = new Color[srcRect.Width * srcRect.Height];
+        var st = Stopwatch.StartNew();
+        TextureUtils.GetPixels(texture, srcRect, pixels);
+        st.Stop();
+        byte[] pixelBytes = new byte[pixels.Length * 4];
+        TextureUtils.CopyColorsToBytes(pixels, ref pixelBytes);
+
+        var srcRectDotnet = new System.Drawing.Rectangle();
+        srcRectDotnet.Width = srcRect.Width;
+        srcRectDotnet.Height = srcRect.Height;
+        srcRectDotnet.X = srcRect.X;
+        srcRectDotnet.Y = srcRect.Y;
+
+        server.SendEvent("Furniture:SpriteBatch:Draw()", [
+            furniture.name,
+            pixelBytes,
+            srcRectDotnet,
+            position.ToVec2(),
+            origin.ToVec2(),
+            scale.ToVec2(),
+        ]);
     }
 }
