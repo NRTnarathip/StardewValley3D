@@ -4,19 +4,22 @@ using MessagePack;
 using System.Numerics;
 using System.Drawing;
 
-public class CustomMsgPackFormatter
+namespace GameDummy
 {
-    public static readonly IFormatterResolver resolver = CompositeResolver.Create(
-         new IMessagePackFormatter[]
-         {
-                new RectangleMsgPackFormatter(),
-                new Vector2MsgPackFormatter(),
-                TypelessFormatter.Instance,
-         },
-         new IFormatterResolver[]
-         {
-                StandardResolver.Instance
-         }
-     );
+    public class CustomMsgPackFormatter
+    {
+        public static readonly IFormatterResolver resolver = CompositeResolver.Create(
+             new IMessagePackFormatter[]
+             {
+                    new RectangleMsgPackFormatter(),
+                    new Vector2MsgPackFormatter(),
+                    TypelessFormatter.Instance,
+             },
+             new IFormatterResolver[]
+             {
+                    StandardResolver.Instance
+             }
+         );
 
+    }
 }

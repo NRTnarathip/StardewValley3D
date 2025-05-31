@@ -1,12 +1,14 @@
 ﻿using System.Drawing;
 
+namespace GameDummy;
+
 static class Program
 {
     private static async Task Main(string[] args)
     {
         Task.Run(async () =>
         {
-            var gameApp = new StardewApp();
+            var gameApp = new BaseAppNetwork(true);
             if (gameApp.Start() is false)
             {
                 return;

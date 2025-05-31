@@ -67,7 +67,7 @@ static class GameHookRenderer
         var server = MainEntry.server;
         var furniture = lastFurnitureDraw;
         var srcRect = sourceRectangle.Value;
-        //Console.WriteLine($"drawing furniture name: {furniture.name}");
+        Console.WriteLine($"drawing furniture name: {furniture.name}");
         //Console.WriteLine($" - texture width: {texture.width}, height: {texture.height}");
         //Console.WriteLine($" - position: {position}");
         //Console.WriteLine($" - src rect: {srcRect.Size}");
@@ -82,19 +82,14 @@ static class GameHookRenderer
         byte[] pixelBytes = new byte[pixels.Length * 4];
         TextureUtils.CopyColorsToBytes(pixels, ref pixelBytes);
 
-        var srcRectDotnet = new System.Drawing.Rectangle();
-        srcRectDotnet.Width = srcRect.Width;
-        srcRectDotnet.Height = srcRect.Height;
-        srcRectDotnet.X = srcRect.X;
-        srcRectDotnet.Y = srcRect.Y;
 
         server.SendEvent("Furniture:SpriteBatch:Draw()", [
             furniture.name,
             pixelBytes,
-            srcRectDotnet,
+            srcRect.ToRect(),
             position.ToVec2(),
-            origin.ToVec2(),
             scale.ToVec2(),
+            origin.ToVec2(),
         ]);
     }
 }

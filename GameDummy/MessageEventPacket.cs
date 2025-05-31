@@ -3,7 +3,7 @@ using LiteNetLib.Utils;
 using MessagePack;
 using System.Reflection;
 
-namespace StardewValleyAR
+namespace GameDummy
 {
     public struct GeneralObjectPacket : INetSerializable
     {
@@ -31,18 +31,21 @@ namespace StardewValleyAR
     {
         public string name { get; set; }
         public GeneralObjectPacket[] args { get; set; }
+        public object[] latestUnpackArgs { get; private set; }
+
         public object[] UnpackArgs()
         {
             var targetType = typeof(byte);
-            object[] resultArgs = new object[args.Length];
+            latestUnpackArgs = new object[args.Length];
             for (int i = 0; i < args.Length; i++)
             {
                 var arg = args[i];
                 var valType = TypeFinder.GetTypeFromFullName(arg.typeFullName);
                 var val = MessagePackSerializer.Deserialize(valType, arg.bytes, ArgsSerializerOption);
+                latestUnpackArgs[i] = val;
             }
 
-            return resultArgs;
+            return latestUnpackArgs;
         }
         public void PackArgs(object[] inputArgs)
         {

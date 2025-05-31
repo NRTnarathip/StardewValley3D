@@ -1,37 +1,37 @@
 ﻿using MessagePack;
 using MessagePack.Formatters;
 using System.Drawing;
+using System;
 
-public class RectangleMsgPackFormatter : IMessagePackFormatter<Rectangle>
+namespace GameDummy
 {
-    public Rectangle Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+
+    public class RectangleMsgPackFormatter : IMessagePackFormatter<Rectangle>
     {
-        Console.WriteLine("try Deserialize rect");
+        public Rectangle Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        {
+            // Depth step is the first step to parse any file.
+            options.Security.DepthStep(ref reader);
 
-        // Depth step is the first step to parse any file.
-        options.Security.DepthStep(ref reader);
+            var h = reader.ReadArrayHeader();
+            if (h != 4)
+                throw new ArgumentException(h.ToString());
 
-        var h = reader.ReadArrayHeader();
-        if (h != 4) 
-            throw new ArgumentException(h.ToString());
+            int x = reader.ReadInt32();
+            int y = reader.ReadInt32();
+            int width = reader.ReadInt32();
+            int height = reader.ReadInt32();
 
-        Console.WriteLine("readed array header");
-        int x = reader.ReadInt32();
-        int y = reader.ReadInt32();
-        int width = reader.ReadInt32();
-        int height = reader.ReadInt32();
-        Console.WriteLine("on Deserialize rect");
+            return new Rectangle(x, y, width, height);
+        }
 
-        return new Rectangle(x, y, width, height);
-    }
-
-    public void Serialize(ref MessagePackWriter writer, Rectangle value, MessagePackSerializerOptions options)
-    {
-        writer.WriteArrayHeader(4);
-        writer.Write(value.X);
-        writer.Write(value.Y);
-        writer.Write(value.Width);
-        writer.Write(value.Height);
-        Console.WriteLine("on Serialize rect");
+        public void Serialize(ref MessagePackWriter writer, Rectangle value, MessagePackSerializerOptions options)
+        {
+            writer.WriteArrayHeader(4);
+            writer.Write(value.X);
+            writer.Write(value.Y);
+            writer.Write(value.Width);
+            writer.Write(value.Height);
+        }
     }
 }
