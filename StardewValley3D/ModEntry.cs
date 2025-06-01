@@ -1,7 +1,10 @@
 ﻿using GameDummy;
 using HarmonyLib;
+using Microsoft.Xna.Framework.Graphics;
+using SkiaSharp;
 using StardewModdingAPI;
 using StardewValley;
+using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
 
@@ -23,24 +26,15 @@ public class ModEntry : Mod
         //setup game pipe
         server = new(true);
         server.Start();
+        serverScreenStreaming = new BufferStreaming("Game.Rendered", server);
 
-#if true
+#if DEBUG && false
+        // tester only
         client = new(false);
         client.Start();
         client.EnableAnnotation(this);
-        //client.RegisterEvent("Furniture:SpriteBatch:Draw()", (
-        //    string furnitureName,
-        //    byte[] rawPixels,
-        //    System.Drawing.Rectangle srcRect,
-        //    System.Numerics.Vector2 pos,
-        //    System.Numerics.Vector2 scale,
-        //    System.Numerics.Vector2 origin,
-        //    int entityID
-        //) =>
-        //{
-        //    client.Log($"on furniture draw(), name: {furnitureName}, pixels len: {rawPixels.Length}");
-        //    //GameHookRenderer.SavePixelsToPng(pixels, width, height, name);
-        //});
+        clientScreenStreaming = new BufferStreaming("Game.Rendered", client);
+        clientScreenStreaming.onBufferCompleted += ClientScreenStreaming_onBufferCompleted;
 #endif
 
         // setup game events
@@ -50,11 +44,33 @@ public class ModEntry : Mod
         helper.Events.GameLoop.UpdateTicking += GameLoop_UpdateTicking;
 
     }
+    byte[] lastDecompressPixels;
+    Texture2D lastDecompessTexture;
+    void ClientScreenStreaming_onBufferCompleted(BufferStreaming streaming)
+    {
+        var rawImage = new byte[streaming.totalBufferSize];
+        for (int i = 0; i < streaming.chunkStreamingPackets.Count; i++)
+        {
+            var chunk = streaming.chunkStreamingPackets[i];
+            Array.Copy(
+                chunk.bytes, 0,
+                rawImage, i * ChunkStreamingPacket.MaxChunkSize,
+                chunk.bytes.Length);
+        }
+
+        int width = 0;
+        int height = 0;
+        lastDecompressPixels = TextureUtils.DecompressImagePixelsLZ4(rawImage, ref width, ref height);
+        lastDecompessTexture = TextureUtils.CreateTextureFromRaw(lastDecompressPixels, width, height);
+    }
+
+    BufferStreaming? serverScreenStreaming;
+    BufferStreaming? clientScreenStreaming;
 
     [OnMessage("Game1.ticks")]
-    void OnGameTicks(int ticks)
+    void OnMsgGameTicks(int ticks)
     {
-        Console.WriteLine("on msg Game1.ticks: " + ticks);
+        //Console.WriteLine("on msg Game1.ticks: " + ticks);
     }
 
     private void GameLoop_UpdateTicking(object? sender, StardewModdingAPI.Events.UpdateTickingEventArgs e)
@@ -80,5 +96,28 @@ public class ModEntry : Mod
 
     void Display_RenderedStep(object? sender, StardewModdingAPI.Events.RenderedStepEventArgs e)
     {
+        if (e.Step is StardewValley.Mods.RenderSteps.FullScene)
+        {
+            var graphicDevice = e.SpriteBatch.graphicsDevice;
+            var render = (RenderTarget2D)graphicDevice.GetRenderTargets().First().RenderTarget;
+            byte[] pixels = new byte[render.width * render.height * 4];
+            render.GetPixelsFaster(ref pixels);
+
+            byte[] compressPixels = TextureUtils.CompressImagePixelsWithLz4(pixels, render.width, render.height);
+
+            serverScreenStreaming.SendToAll(compressPixels);
+
+            // debug
+            //drawing
+            //if (lastDecompressPixels is not null)
+            //{
+            //    var b = e.SpriteBatch;
+            //    b.Draw(lastDecompessTexture,
+            //        new Microsoft.Xna.Framework.Vector2(0, 0),
+            //        new Microsoft.Xna.Framework.Rectangle(0, 0, 300, 300),
+            //        Microsoft.Xna.Framework.Color.White
+            //    );
+            //}
+        }
     }
 }

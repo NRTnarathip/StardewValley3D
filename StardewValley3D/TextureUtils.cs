@@ -7,6 +7,8 @@ using System.Runtime.InteropServices;
 using System.Collections;
 using StardewValley;
 using SkiaSharp;
+using System.Diagnostics;
+using K4os.Compression.LZ4;
 
 namespace StardewValley3D;
 
@@ -101,5 +103,43 @@ internal static class TextureUtils
                 cropPixels[cropIndex] = fullPixels[fullPixelIndex];
             }
         }
+    }
+
+    public static byte[] CompressImagePixelsWithLz4(
+        byte[] rawPixels, int width, int height)
+    {
+        // add width, height int32
+        byte[] imageEncodeBytes = new byte[rawPixels.Length];
+
+        int imageEncodeLen = LZ4Codec.Encode(rawPixels, imageEncodeBytes, LZ4Level.L00_FAST);
+        Array.Resize(ref imageEncodeBytes, imageEncodeLen);
+
+        byte[] finalCompressBytes = new byte[imageEncodeBytes.Length + 8];
+        // write width, height
+        BitConverter.GetBytes(width).CopyTo(finalCompressBytes, 0);
+        BitConverter.GetBytes(height).CopyTo(finalCompressBytes, 4);
+        Array.Copy(imageEncodeBytes, 0, finalCompressBytes, 8, imageEncodeBytes.Length);
+        return finalCompressBytes;
+    }
+
+    public static byte[] DecompressImagePixelsLZ4(byte[] inputBytes, ref int resultWidth, ref int resultHeight)
+    {
+        resultWidth = BitConverter.ToInt32(inputBytes, 0);
+        resultHeight = BitConverter.ToInt32(inputBytes, 4);
+        int totalLength = resultWidth * resultHeight * 4;
+
+        byte[] resultImageBytes = new byte[totalLength];
+        byte[] imageCompressBytes = inputBytes[8..];
+        int decodeLength = LZ4Codec.Decode(imageCompressBytes, resultImageBytes);
+
+        return resultImageBytes;
+    }
+
+    public static Texture2D CreateTextureFromRaw(byte[] raw, int width, int height)
+    {
+        var texture = new Texture2D(Game1.graphics.GraphicsDevice,
+            width, height, false, SurfaceFormat.Color);
+        texture.SetData(raw);
+        return texture;
     }
 }
