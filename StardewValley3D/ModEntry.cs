@@ -66,6 +66,12 @@ public class ModEntry : Mod
     private void GameLoop_UpdateTicked(object? sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
     {
         server.SendEvent("Game1.ticks", [Game1.ticks], LiteNetLib.DeliveryMethod.Unreliable);
+
+        var location = Game1.currentLocation;
+        if (location is not null)
+        {
+            //Console.WriteLine("location: " + location.name);
+        }
     }
 
     private void Display_Rendered(object? sender, StardewModdingAPI.Events.RenderedEventArgs e)

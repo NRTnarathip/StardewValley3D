@@ -168,10 +168,13 @@ namespace GameDummy
             var prefix = isServer ? "SERVER" : "CLIENT";
             Console.WriteLine($"[{prefix}] " + msg);
         }
-
+        public readonly FPSCounter fpsCounter = new();
+        public int ticks { get; private set; } = 0;
         public void PerformUpdate()
         {
             netManager.PollEvents();
+            ticks++;
+            fpsCounter.Update();
         }
 
         public void OnConnectionRequest(ConnectionRequest request)

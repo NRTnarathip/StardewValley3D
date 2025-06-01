@@ -1,52 +1,95 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace GameDummy
 {
     static class Program
     {
-        private static async Task Main(string[] args)
+        private static void Main(string[] args)
         {
             Task.Run(async () =>
             {
-                var gameApp = new BaseAppNetwork(true);
-                if (gameApp.Start() is false)
+                try
                 {
-                    return;
-                }
 
-                while (true)
+                    var server = new BaseAppNetwork(true);
+                    if (server.Start() is false)
+                    {
+                        return;
+                    }
+
+                    var streaming = new BufferStreaming("Game.Renderer", server);
+
+                    var random = new Random();
+                    while (true)
+                    {
+                        try
+                        {
+                            server.PerformUpdate();
+                            var screenBytes = new byte[50_000 + (int)(random.NextSingle() * 100_000)];
+                            streaming.SendToAll(screenBytes);
+                            await Task.Delay(1);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                        }
+                    }
+                }
+                catch (Exception ex)
                 {
-                    gameApp.PerformUpdate();
-                    var screenBytes = new byte[10_000];
-                    var pos = new System.Numerics.Vector2(22, 99);
-                    var scale = new System.Numerics.Vector2(22, 99);
-                    //gameApp.SendEvent("draw", [
-                    //    "hello guy",
-                    //    screenBytes,
-                    //    new Rectangle(0, 0, 155, 155),
-                    //    pos,
-                    //    scale
-                    //]);
-                    await Task.Delay(500);
+                    Console.WriteLine(ex);
                 }
             });
 
             Task.Run(async () =>
             {
-                var client = new BaseAppNetwork(false);
-                client.Start();
-
-                while (true)
+                try
                 {
-                    client.PerformUpdate();
-                    await Task.Delay(100);
+                    var client = new BaseAppNetwork(false);
+                    client.Start();
+
+                    var streaming = new BufferStreaming("Game.Renderer", client);
+                    var streamingFPSCounter = new FPSCounter();
+                    streaming.onBufferCompleted += (streaming) =>
+                    {
+                        streamingFPSCounter.Update();
+                        if (streamingFPSCounter.isNewFPS)
+                        {
+                            Console.WriteLine("fps: " + streamingFPSCounter.fps);
+                            Console.WriteLine(" total bytes: " + streaming.totalBufferSize);
+                        }
+                    };
+
+                    while (true)
+                    {
+                        try
+                        {
+                            client.PerformUpdate();
+                            if (client.fpsCounter.isNewFPS)
+                            {
+                                Console.WriteLine("client fps: " + client.fpsCounter.fps);
+                            }
+
+                            await Task.Delay(1);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
                 }
             });
 
             while (true)
             {
-                await Task.Delay(1000);
+                Thread.Sleep(1000);
             }
         }
     }
