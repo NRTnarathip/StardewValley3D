@@ -14,6 +14,6 @@ namespace GameDummy
         [Key(3)]
         public byte[] bytes;
 
-        public const int MaxChunkSize = 60_000;
+        public const int MaxChunkSize = 900;
     }
 }

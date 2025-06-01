@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 
 namespace GameDummy
 {
@@ -30,35 +32,49 @@ namespace GameDummy
             return $"{typeof(BufferStreaming).FullName}:SendReciveChunk:{streamingID}";
         }
 
-        public List<ChunkStreamingPacket> chunkStreamingPackets { get; private set; } = new();
-        public int totalBufferSize { get; private set; } = 0;
+        Dictionary<string, ChunkGroup> chunkGroupMap = new();
+        Queue<ChunkGroup> chunkGroupMapQueue = new();
 
         public void OnReciveChunk(ChunkStreamingPacket chunk)
         {
-            // init
-            bool isFirstChunk = chunk.chunkIndex == 0;
-            if (isFirstChunk)
+            string chunkID = chunk.chunkID;
+            if (chunkGroupMap.TryGetValue(chunkID, out var chunkGroup) is false)
             {
-                chunkStreamingPackets.Clear();
-                totalBufferSize = 0;
-            }
+                chunkGroup = new(chunkID);
+                chunkGroup.OnCompleted += ChunkGroup_OnCompleted;
 
-            // update
-            chunkStreamingPackets.Add(chunk);
-            totalBufferSize += chunk.bytes.Length;
+                chunkGroupMap[chunkID] = chunkGroup;
+                chunkGroupMapQueue.Enqueue(chunkGroup);
 
-            // done
-            bool isLastChunk = chunkStreamingPackets.Count == chunk.totalChunk;
-            if (isLastChunk)
-            {
-                onBufferCompleted?.Invoke(this);
+                // clear unuse group
+                if (chunkGroupMapQueue.Count >= 2)
+                {
+                    var removeChunkGroup = chunkGroupMapQueue.Dequeue();
+                    chunkGroupMap.Remove(removeChunkGroup.chunkID);
+                }
             }
+            chunkGroup.AddChunk(chunk);
         }
 
-        int senderCounter = 0;
+        public ChunkGroup? lastChunkGroupCompleted { get; private set; }
+        void ChunkGroup_OnCompleted(ChunkGroup newChunkGroup)
+        {
+            // check if you have new chunk completed
+            if (newChunkGroup.chunkIDNumber < lastChunkGroupCompleted?.chunkIDNumber)
+            {
+                return;
+            }
+
+            // update new latest completed
+            lastChunkGroupCompleted = newChunkGroup;
+            // ready fire API
+            OnBufferCompleted?.Invoke(this);
+        }
+
+        int sendPacketCounter = 0;
         public void SendToAll(byte[] bufferBytes)
         {
-            senderCounter++;
+            sendPacketCounter++;
 
             int totalChunks = (int)Math.Ceiling((double)bufferBytes.Length / ChunkStreamingPacket.MaxChunkSize);
             for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++)
@@ -76,7 +92,7 @@ namespace GameDummy
                 );
 
                 // chunkID you use any ID
-                string chunkID = $"{streamingID}:{senderCounter}";
+                string chunkID = $"{streamingID}:{sendPacketCounter}";
                 var chunk = new ChunkStreamingPacket()
                 {
                     bytes = chunkBytes,
@@ -84,10 +100,22 @@ namespace GameDummy
                     chunkIndex = chunkIndex,
                     totalChunk = totalChunks,
                 };
-                net.SendEvent(streamingChunkSendReciveID, new object[] { chunk });
+                net.SendEvent(streamingChunkSendReciveID,
+                    new object[] { chunk },
+                    LiteNetLib.DeliveryMethod.Unreliable);
             }
         }
 
-        public event Action<BufferStreaming>? onBufferCompleted;
+        public byte[]? GetLatestCompletedBytes()
+        {
+            if (lastChunkGroupCompleted is null)
+            {
+                return null;
+            }
+
+            return lastChunkGroupCompleted.fullBytes;
+        }
+
+        public event Action<BufferStreaming>? OnBufferCompleted;
     }
 }

@@ -28,13 +28,13 @@ public class ModEntry : Mod
         server.Start();
         serverScreenStreaming = new BufferStreaming("Game.Rendered", server);
 
-#if DEBUG && false
+#if DEBUG && true
         // tester only
         client = new(false);
         client.Start();
         client.EnableAnnotation(this);
         clientScreenStreaming = new BufferStreaming("Game.Rendered", client);
-        clientScreenStreaming.onBufferCompleted += ClientScreenStreaming_onBufferCompleted;
+        clientScreenStreaming.OnBufferCompleted += ClientScreenStreaming_onBufferCompleted;
 #endif
 
         // setup game events
@@ -48,14 +48,10 @@ public class ModEntry : Mod
     Texture2D lastDecompessTexture;
     void ClientScreenStreaming_onBufferCompleted(BufferStreaming streaming)
     {
-        var rawImage = new byte[streaming.totalBufferSize];
-        for (int i = 0; i < streaming.chunkStreamingPackets.Count; i++)
+        byte[]? rawImage = streaming.GetLatestCompletedBytes();
+        if (rawImage is null)
         {
-            var chunk = streaming.chunkStreamingPackets[i];
-            Array.Copy(
-                chunk.bytes, 0,
-                rawImage, i * ChunkStreamingPacket.MaxChunkSize,
-                chunk.bytes.Length);
+            return;
         }
 
         int width = 0;
@@ -94,6 +90,8 @@ public class ModEntry : Mod
     {
     }
 
+    int lastSendScreenBufferHash = 0;
+    int lastSendScreenBufferSize = 0;
     void Display_RenderedStep(object? sender, StardewModdingAPI.Events.RenderedStepEventArgs e)
     {
         if (e.Step is StardewValley.Mods.RenderSteps.FullScene)
@@ -104,20 +102,24 @@ public class ModEntry : Mod
             render.GetPixelsFaster(ref pixels);
 
             byte[] compressPixels = TextureUtils.CompressImagePixelsWithLz4(pixels, render.width, render.height);
-
-            serverScreenStreaming.SendToAll(compressPixels);
+            if (compressPixels.Length != lastSendScreenBufferSize)
+            {
+                lastSendScreenBufferSize = compressPixels.Length;
+                serverScreenStreaming.SendToAll(compressPixels);
+                //Console.WriteLine("detect cache new frame: " + compressPixels.Length);
+            }
 
             // debug
             //drawing
-            //if (lastDecompressPixels is not null)
-            //{
-            //    var b = e.SpriteBatch;
-            //    b.Draw(lastDecompessTexture,
-            //        new Microsoft.Xna.Framework.Vector2(0, 0),
-            //        new Microsoft.Xna.Framework.Rectangle(0, 0, 300, 300),
-            //        Microsoft.Xna.Framework.Color.White
-            //    );
-            //}
+            if (lastDecompessTexture is not null)
+            {
+                var b = e.SpriteBatch;
+                b.Draw(lastDecompessTexture,
+                    new Microsoft.Xna.Framework.Vector2(0, 0),
+                    new Microsoft.Xna.Framework.Rectangle(0, 0, 300, 300),
+                    Microsoft.Xna.Framework.Color.White
+                );
+            }
         }
     }
 }

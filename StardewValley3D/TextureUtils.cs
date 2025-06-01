@@ -111,7 +111,8 @@ internal static class TextureUtils
         // add width, height int32
         byte[] imageEncodeBytes = new byte[rawPixels.Length];
 
-        int imageEncodeLen = LZ4Codec.Encode(rawPixels, imageEncodeBytes, LZ4Level.L00_FAST);
+        LZ4Level option = LZ4Level.L00_FAST;
+        int imageEncodeLen = LZ4Codec.Encode(rawPixels, imageEncodeBytes, option);
         Array.Resize(ref imageEncodeBytes, imageEncodeLen);
 
         byte[] finalCompressBytes = new byte[imageEncodeBytes.Length + 8];

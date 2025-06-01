@@ -53,13 +53,12 @@ namespace GameDummy
 
                     var streaming = new BufferStreaming("Game.Renderer", client);
                     var streamingFPSCounter = new FPSCounter();
-                    streaming.onBufferCompleted += (streaming) =>
+                    streaming.OnBufferCompleted += (streaming) =>
                     {
                         streamingFPSCounter.Update();
                         if (streamingFPSCounter.isNewFPS)
                         {
                             Console.WriteLine("fps: " + streamingFPSCounter.fps);
-                            Console.WriteLine(" total bytes: " + streaming.totalBufferSize);
                         }
                     };
 
