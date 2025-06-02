@@ -72,9 +72,11 @@ namespace GameDummy
         }
 
         int sendPacketCounter = 0;
-        public void SendToAll(byte[] bufferBytes)
+        public string SendToAll(byte[] bufferBytes)
         {
             sendPacketCounter++;
+            // chunkID you use any ID
+            string chunkID = $"{streamingID}:{sendPacketCounter}";
 
             int totalChunks = (int)Math.Ceiling((double)bufferBytes.Length / ChunkStreamingPacket.MaxChunkSize);
             for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++)
@@ -91,8 +93,6 @@ namespace GameDummy
                     chunkBytes.Length
                 );
 
-                // chunkID you use any ID
-                string chunkID = $"{streamingID}:{sendPacketCounter}";
                 var chunk = new ChunkStreamingPacket()
                 {
                     bytes = chunkBytes,
@@ -104,6 +104,8 @@ namespace GameDummy
                     new object[] { chunk },
                     LiteNetLib.DeliveryMethod.Unreliable);
             }
+
+            return chunkID;
         }
 
         public byte[]? GetLatestCompletedBytes()

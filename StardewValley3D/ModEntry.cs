@@ -63,21 +63,43 @@ public class ModEntry : Mod
     BufferStreaming? serverScreenStreaming;
     BufferStreaming? clientScreenStreaming;
 
-    [OnMessage("Game1.ticks")]
-    void OnMsgGameTicks(int ticks)
-    {
-        //Console.WriteLine("on msg Game1.ticks: " + ticks);
-    }
-
     private void GameLoop_UpdateTicking(object? sender, StardewModdingAPI.Events.UpdateTickingEventArgs e)
     {
         server.PerformUpdate();
         client?.PerformUpdate();
+
+        //Console.WriteLine("Game Ticking: " + Game1.ticks);
+        //Console.WriteLine("server ticks: " + server.ticks);
     }
 
     private void GameLoop_UpdateTicked(object? sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
     {
-        server.SendEvent("Game1.ticks", [Game1.ticks], LiteNetLib.DeliveryMethod.Unreliable);
+        FarmerRenderer.DisableDrawToGameScreen = true;
+
+        server.SendEvent("UpdateTicked Game1.ticks", [Game1.ticks]);
+
+        Vector2 viewportLeftTop = new(
+            Game1.viewport.X,
+            Game1.viewport.Y
+        );
+
+        server.SendEvent("Camera:Update", [
+            viewportLeftTop,
+            Game1.ticks,
+        ]);
+
+        foreach (var farmer in Game1.getAllFarmers())
+        {
+            System.Numerics.Vector2 tilePos = farmer.position.Value.ToVec2() / 64f;
+            string name = farmer.Name;
+            long uniqueID = farmer.uniqueMultiplayerID.Value;
+            server.SendEvent("Farmer:Update", [
+                name,
+                uniqueID,
+                tilePos,
+                Game1.ticks,
+            ]);
+        }
 
         var location = Game1.currentLocation;
         if (location is not null)
@@ -105,20 +127,23 @@ public class ModEntry : Mod
             if (compressPixels.Length != lastSendScreenBufferSize)
             {
                 lastSendScreenBufferSize = compressPixels.Length;
-                serverScreenStreaming.SendToAll(compressPixels);
-                //Console.WriteLine("detect cache new frame: " + compressPixels.Length);
+                var chunkIDSender = serverScreenStreaming.SendToAll(compressPixels);
+                server.SendEvent("ScreenStreaming:SenderInfo", [
+                    chunkIDSender,
+                    Game1.ticks,
+                ]);
             }
 
             // debug
             //drawing
             if (lastDecompessTexture is not null)
             {
-                var b = e.SpriteBatch;
-                b.Draw(lastDecompessTexture,
-                    new Microsoft.Xna.Framework.Vector2(0, 0),
-                    new Microsoft.Xna.Framework.Rectangle(0, 0, 300, 300),
-                    Microsoft.Xna.Framework.Color.White
-                );
+                //var b = e.SpriteBatch;
+                //b.Draw(lastDecompessTexture,
+                //    new Microsoft.Xna.Framework.Vector2(0, 0),
+                //    new Microsoft.Xna.Framework.Rectangle(0, 0, 300, 300),
+                //    Microsoft.Xna.Framework.Color.White
+                //);
             }
         }
     }

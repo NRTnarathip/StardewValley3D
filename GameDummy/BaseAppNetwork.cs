@@ -85,6 +85,7 @@ namespace GameDummy
                     }
                     catch (Exception ex)
                     {
+                        Log("Error On Message: " + msg.name);
                         Log(ex);
                     }
                 }
@@ -109,6 +110,7 @@ namespace GameDummy
                                     }
                                     catch (Exception ex)
                                     {
+                                        Log("Error On Message: " + msg.name);
                                         Log(ex);
                                     }
                                 }

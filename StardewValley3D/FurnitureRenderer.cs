@@ -37,7 +37,7 @@ internal static class FurnitureRenderer
     }
 
 
-    internal static void OnDraw(SpriteBatch instance, Texture2D texture, Vector2 position,
+    internal static void OnSpriteBatchDraw(SpriteBatch instance, Texture2D texture, Vector2 position,
         Rectangle srcRect, Color color, float rotation, Vector2 origin,
         Vector2 scale, SpriteEffects effects, float layerDepth)
     {
@@ -53,6 +53,8 @@ internal static class FurnitureRenderer
 
         int entityID = lastFurnitureDraw.GetHashCode();
         var tilePos = lastFurnitureDraw.tileLocation.Value;
+
+        return;
 
         server.SendEvent("Furniture:SpriteBatch:Draw()", [
             furniture.name,

@@ -6,7 +6,6 @@ namespace GameDummy
     {
         public BaseAnnotationAttribute()
         {
-            Console.WriteLine("on ctor base network annotation");
         }
     }
 }

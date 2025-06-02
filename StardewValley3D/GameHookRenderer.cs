@@ -38,7 +38,7 @@ static class GameHookRenderer
     {
         if (FurnitureRenderer.lastFurnitureDraw is not null)
         {
-            FurnitureRenderer.OnDraw(__instance, texture,
+            FurnitureRenderer.OnSpriteBatchDraw(__instance, texture,
                 position, sourceRectangle.Value,
                 color, rotation,
                 origin, scale,
@@ -48,7 +48,7 @@ static class GameHookRenderer
 
         else if (FarmerRenderer.lastFarmerDraw is not null)
         {
-            FarmerRenderer.OnDraw(__instance, texture,
+            FarmerRenderer.OnSpriteBatchDraw(__instance, texture,
                 position, sourceRectangle.Value,
                 color, rotation,
                 origin, scale,
