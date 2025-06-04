@@ -14,12 +14,29 @@ namespace StardewValley3D;
 [HarmonyPatch]
 internal static class FarmerRenderer
 {
+    public static void Init()
+    {
+        GameHookRenderer.eventOnSpriteBatchDraw1 += GameHookRenderer_eventOnSpriteBatchDraw;
+    }
+
+    private static void GameHookRenderer_eventOnSpriteBatchDraw(SpriteBatch spriteBatch, Texture2D texture, Vector2 position, Rectangle? sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth)
+    {
+        if (lastFarmerDraw is null)
+            return;
+
+        OnSpriteBatchDraw(spriteBatch, texture, position,
+            sourceRectangle, color, rotation, origin,
+            scale, effects, layerDepth);
+    }
+
     public static Farmer? lastFarmerDraw;
 
-    public static bool DisableDrawToGameScreen = false;
+    public static bool IsDisableDrawToGame = false;
 
     static RenderTarget2D myRenderTarget;
     static RenderTarget2D gameRenderTarget;
+
+    static SpriteBatchBeginState backupBeginState = new();
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Farmer), "draw", [typeof(SpriteBatch)])]
@@ -46,13 +63,14 @@ internal static class FarmerRenderer
             );
         }
 
-        b.End();
-        Game1.SetRenderTarget(myRenderTarget);
-        b.Begin(SpriteSortMode.Deferred, 
-            BlendState.AlphaBlend, 
-            SamplerState.PointClamp, 
-            DepthStencilState.Default, 
-            RasterizerState.CullNone);
+
+        if (IsDisableDrawToGame)
+        {
+            backupBeginState.BackupAndEnd(b);
+
+            Game1.SetRenderTarget(myRenderTarget);
+            backupBeginState.Begin(b);
+        }
     }
 
 
@@ -64,52 +82,44 @@ internal static class FarmerRenderer
     {
         lastFarmerDraw = null;
 
-        if (DisableDrawToGameScreen)
+        if (IsDisableDrawToGame)
         {
             b.End();
-
             Game1.SetRenderTarget(gameRenderTarget);
-
-            b.Begin(SpriteSortMode.Deferred,
-              BlendState.AlphaBlend,
-              SamplerState.PointClamp,
-              DepthStencilState.Default,
-              RasterizerState.CullNone);
+            backupBeginState.Begin(b);
         }
     }
 
     static int OnDrawCounter = 0;
     internal static void OnSpriteBatchDraw(SpriteBatch b, Texture2D texture,
-        Vector2 drawPos, Rectangle srcRect, Color color,
+        Vector2 drawPos, Rectangle? srcRectOrNull, Color color,
         float rotation, Vector2 origin, Vector2 scale,
         SpriteEffects effects, float layerDepth)
     {
+        if (srcRectOrNull.HasValue is false)
+        {
+            return;
+        }
+
         OnDrawCounter++;
-
         var server = ModEntry.server;
+        var srcRect = srcRectOrNull.Value;
 
-        Color[] pixels = new Color[srcRect.Width * srcRect.Height];
-        TextureUtils.GetPixels(texture, srcRect, pixels);
-        byte[] pixelBytes = new byte[pixels.Length * 4];
-        TextureUtils.CopyColorsToBytes(pixels, ref pixelBytes);
+        var drawTilePos = Utils.ConvertDrawScreenPosToTilePos(drawPos);
+        var textureUniqPath = texture.GetUniquePath();
 
-        var colorDotnet = System.Drawing.Color.FromArgb(color.A, color.R, color.G, color.B);
-        var srcRectSize = srcRect.Size;
-        var originWithinDrawSrc = new System.Numerics.Vector2(
-            (origin.X - srcRect.X) / (float)srcRectSize.X,
-           (origin.Y - srcRect.Y) / (float)srcRectSize.Y);
-
-        server.SendEvent("Farmer:Draw()", [
+        server.SendEvent("Farmer:Render", [
+            Game1.ticks,
             lastFarmerDraw.uniqueMultiplayerID.Value,
-            pixelBytes,
-            new System.Numerics.Vector2(srcRect.Width, srcRect.Height),
+            textureUniqPath,
+            srcRect.ToRectSystem(),
             OnDrawCounter,
-            drawPos.ToVec2(),
-            origin.ToVec2(),
-            colorDotnet,
+            drawTilePos.ToVec2System(),
+            origin.ToVec2System(),
+            color.ToColorSystem(),
             (int)effects,
             layerDepth,
-        ]);
+        ], LiteNetLib.DeliveryMethod.Unreliable);
 
     }
 }

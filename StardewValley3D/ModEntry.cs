@@ -23,6 +23,10 @@ public class ModEntry : Mod
         HelperSingleton = helper;
         harmony.PatchAll();
 
+        ObjectRenderer.Init(harmony);
+        FarmerRenderer.Init();
+        Texture2DCacheManager.Init();
+
         //setup game pipe
         server = new(true);
         server.Start();
@@ -43,6 +47,7 @@ public class ModEntry : Mod
         helper.Events.GameLoop.UpdateTicked += GameLoop_UpdateTicked;
         helper.Events.GameLoop.UpdateTicking += GameLoop_UpdateTicking;
 
+        // setup Texture2D Cache
     }
     byte[] lastDecompressPixels;
     Texture2D lastDecompessTexture;
@@ -68,15 +73,14 @@ public class ModEntry : Mod
         server.PerformUpdate();
         client?.PerformUpdate();
 
-        //Console.WriteLine("Game Ticking: " + Game1.ticks);
-        //Console.WriteLine("server ticks: " + server.ticks);
+        server.SendEvent("Game:Ticking", [Game1.ticks]);
     }
 
     private void GameLoop_UpdateTicked(object? sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
     {
-        FarmerRenderer.DisableDrawToGameScreen = true;
+        FarmerRenderer.IsDisableDrawToGame = true;
+        ObjectRenderer.IsDisableDrawToGame = true;
 
-        server.SendEvent("UpdateTicked Game1.ticks", [Game1.ticks]);
 
         Vector2 viewportLeftTop = new(
             Game1.viewport.X,
@@ -88,9 +92,10 @@ public class ModEntry : Mod
             Game1.ticks,
         ]);
 
+        // update farmers
         foreach (var farmer in Game1.getAllFarmers())
         {
-            System.Numerics.Vector2 tilePos = farmer.position.Value.ToVec2() / 64f;
+            System.Numerics.Vector2 tilePos = farmer.position.Value.ToVec2System() / 64f;
             string name = farmer.Name;
             long uniqueID = farmer.uniqueMultiplayerID.Value;
             server.SendEvent("Farmer:Update", [
@@ -98,14 +103,53 @@ public class ModEntry : Mod
                 uniqueID,
                 tilePos,
                 Game1.ticks,
-            ]);
+            ], LiteNetLib.DeliveryMethod.ReliableUnordered);
         }
 
         var location = Game1.currentLocation;
         if (location is not null)
         {
+            var allObjects = new HashSet<StardewValley.Object>();
+            // Update All Furniture 
+            foreach (var furniture in location.furniture)
+            {
+                allObjects.Add(furniture);
+            }
+
+            // Update General Objects
+            foreach (var obj in location.objects.Values)
+            {
+                if (allObjects.Contains(obj) is false)
+                    allObjects.Add(obj);
+            }
+
+            foreach (var o in allObjects)
+            {
+                var tilePos = o.TileLocation.ToVec2System();
+                string name = o.name;
+                string guid = $"{o.GetType().FullName}:{name}:{tilePos}";
+                server.SendEvent("Object:Update", [
+                    guid,
+                    name,
+                    tilePos,
+                ], LiteNetLib.DeliveryMethod.ReliableUnordered);
+
+                if (name.Contains("Furnace"))
+                {
+                    //Console.WriteLine("update: " + guid);
+                    //Console.WriteLine(" class: " + o);
+                }
+            }
+        }
+
+        if (location is not null)
+        {
             //Console.WriteLine("location: " + location.name);
         }
+
+
+        // end game loop
+        server.SendEvent("Game:Ticked", [Game1.ticks]);
     }
 
     private void Display_Rendered(object? sender, StardewModdingAPI.Events.RenderedEventArgs e)

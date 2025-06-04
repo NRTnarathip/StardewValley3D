@@ -121,6 +121,7 @@ namespace GameDummy
             }
             catch (Exception ex)
             {
+                Log("Error on message: " + msg.name);
                 Log(ex);
             }
         }
