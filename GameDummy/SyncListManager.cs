@@ -75,24 +75,14 @@ namespace GuyNetwork
 
         internal void PollEvents()
         {
-            if (isClient)
-            {
-                if (appNetwork.isConncetedToServer)
-                    PollEventsClient();
-            }
-            else
-            {
-                PollEventsServer();
-            }
         }
 
-        // key: (SyncList.ID + peerEndPoint) ||
-        // value: SyncListClientSnapshot
+        // key: (SyncList.ID + peer)
         Dictionary<string, SyncListClientSnapshot> m_syncListClientSnapshotMap = new();
 
         public SyncListClientSnapshot GetClientSnapshot(string syncListID, NetPeer peer)
         {
-            var snapshotKey = $"{syncListID}-{peer.Id}";
+            string snapshotKey = $"{syncListID}-{peer.Id}";
             var syncList = m_syncListMap[syncListID];
             if (m_syncListClientSnapshotMap.TryGetValue(snapshotKey, out var snapshot) is false)
             {
@@ -103,10 +93,6 @@ namespace GuyNetwork
             return snapshot;
         }
 
-        void PollEventsServer()
-        {
-        }
-
         public void EndUpdate()
         {
             if (isServer)
@@ -115,30 +101,26 @@ namespace GuyNetwork
 
         void EndUpdateServerSide()
         {
+            if (!isServer)
+                return;
+
             var peerList = appNetwork.netManager.ConnectedPeerList;
 
-            if (isServer)
+            foreach ((string listID, BaseSyncList syncList) in m_syncListMap)
             {
-                foreach ((string listID, BaseSyncList syncList) in m_syncListMap)
+                var serializePacket = syncList.SerializeSyncListPacket(packetProcessor, writer);
+
+                if (serializePacket is not null)
                 {
-                    var serializePacket = syncList.SerializeSyncListPacket(packetProcessor, writer);
-
-                    if (serializePacket is not null)
+                    foreach (var peer in peerList)
                     {
-                        foreach (var peer in peerList)
-                        {
-                            var snapshot = GetClientSnapshot(listID, peer);
-                            snapshot.Send(packetProcessor, writer);
-                        }
+                        var snapshot = GetClientSnapshot(listID, peer);
+                        snapshot.Send(packetProcessor, writer);
                     }
-
-                    syncList.Reset();
                 }
-            }
-        }
 
-        void PollEventsClient()
-        {
+                syncList.Reset();
+            }
         }
 
         public void RegisterSyncList<T>(SyncList<T> list)

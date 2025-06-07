@@ -44,10 +44,6 @@ namespace GuyNetwork
             var type = TypeFinder.GetTypeFromFullName(typeFullName);
             return (T)MessagePackSerializer.Deserialize(type, bytes, MyMessagePackSerializerOptions.DefaultOption);
         }
-        public object? ReadValue()
-        {
-            return ReadValue<object>();
-        }
 
         public void WriteValue(object? value)
         {

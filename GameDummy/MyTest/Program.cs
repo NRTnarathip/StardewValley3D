@@ -37,13 +37,15 @@ namespace GuyNetwork
                         try
                         {
                             // begin frame
-                            server.PerformUpdate();
+                            server.BeginUpdate();
 
                             // game ticking
                             var randValue = random.NextDouble();
-                            if (randValue <= 0.55)
+                            if (randValue <= 0.7)
                             {
                                 players.Add($"new random:{randValue}");
+                                if (players.Count >= 36)
+                                    players.Clear();
                             }
                             else
                             {
@@ -92,7 +94,7 @@ namespace GuyNetwork
                         try
                         {
                             // begin frame
-                            client.PerformUpdate();
+                            client.BeginUpdate();
 
                             // ticking
                             if (client.fpsCounter.isNewFPS)

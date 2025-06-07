@@ -10,11 +10,11 @@ namespace GuyNetwork
 {
     public enum SyncListAction : byte
     {
-        Add = 0,
-        Remove = 1,
-        Update = 2,
-        Clear = 3,
-        FullSync = 4,
+        Add,
+        Set,
+        RemoveAt,
+        Clear,
+        FullSync,
     }
 
     public sealed class SyncList<T> : BaseSyncList, IReadOnlyList<T>
@@ -51,67 +51,6 @@ namespace GuyNetwork
             m_onActions.Clear();
         }
 
-        public override void ProcessSyncListPacketOnClient(SyncListPacket packet)
-        {
-            var totalActions = packet.actions.Length;
-            if (totalActions == 0)
-                return;
-
-            var firstAction = (SyncListAction)packet.actions[0];
-
-            // full sync packet
-            if (firstAction is SyncListAction.FullSync)
-            {
-                // already full sync
-                if (isInitFullSync)
-                {
-                    Console.WriteLine("skip full sync");
-                    return;
-                }
-
-                isInitFullSync = true;
-                m_items.Clear();
-                foreach (var item in packet.items)
-                {
-                    T value = item.ReadValue<T>();
-                    m_items.Add(value);
-                }
-                Console.WriteLine("initialized full sync");
-
-                return;
-            }
-
-            // !! Need to init full sync first
-            if (isInitFullSync is false)
-                return;
-
-            // other actions
-            //Console.WriteLine("Try process actions");
-            //Console.WriteLine(" total actions: " + totalActions);
-            //Console.WriteLine(" total items: " + packet.items.Length);
-            //Console.WriteLine(" total actionIndexs: " + packet.actionIndexs.Length);
-            for (int i = 0; i < totalActions; i++)
-            {
-                var action = (SyncListAction)packet.actions[i];
-                var itemPacket = packet.items[i];
-                var item = itemPacket.ReadValue<T>();
-                var index = packet.actionIndexs[i];
-                //Console.WriteLine($" - [{i}] = action:{action} itemIndex:{index}, item:{item}");
-                //Console.WriteLine("my current list: " + m_items.Count);
-                switch (action)
-                {
-                    case SyncListAction.Add:
-                        m_items.Add(item);
-                        break;
-                    case SyncListAction.Update:
-                        m_items[index] = item;
-                        break;
-                    case SyncListAction.Remove:
-                        m_items.RemoveAt(index);
-                        break;
-                }
-            }
-        }
 
         public override void SendFullSyncToClient(NetPacketProcessor processor, NetDataWriter writer, NetPeer clientPeer)
         {
@@ -133,6 +72,71 @@ namespace GuyNetwork
             processor.Write(writer, packet);
             clientPeer.Send(writer, DeliveryMethod.ReliableOrdered);
             writer.Reset();
+        }
+
+        public override void ProcessSyncListPacketOnClient(SyncListPacket packet)
+        {
+            var totalActions = packet.actions.Length;
+            if (totalActions == 0)
+                return;
+
+            var firstAction = (SyncListAction)packet.actions[0];
+
+            // full sync packet
+            if (firstAction is SyncListAction.FullSync)
+            {
+                // can recall FullSync anytime
+                isInitFullSync = true;
+                m_items.Clear();
+                foreach (var item in packet.items)
+                {
+                    T value = item.ReadValue<T>();
+                    m_items.Add(value);
+                }
+                Console.WriteLine("initialized full sync");
+
+                return;
+            }
+
+            // !! Need to init full sync first
+            if (isInitFullSync is false)
+                return;
+
+            int indexTemp = -1;
+            T? itemTemp = default;
+            GeneralObjectPacket itemPacketTemp = new();
+
+            for (int i = 0; i < totalActions; i++)
+            {
+                var action = (SyncListAction)packet.actions[i];
+
+                //Console.WriteLine($" - [{i}] = action:{action} itemIndex:{index}, item:{item}");
+
+                switch (action)
+                {
+                    case SyncListAction.Add:
+                        itemPacketTemp = packet.items[i];
+                        itemTemp = itemPacketTemp.ReadValue<T>();
+                        m_items.Add(itemTemp);
+                        break;
+
+                    case SyncListAction.Set:
+                        indexTemp = packet.actionIndexs[i];
+                        itemPacketTemp = packet.items[i];
+                        itemTemp = itemPacketTemp.ReadValue<T>();
+                        m_items[indexTemp] = itemTemp;
+                        break;
+
+                    case SyncListAction.RemoveAt:
+                        indexTemp = packet.actionIndexs[i];
+                        m_items.RemoveAt(indexTemp);
+                        break;
+
+                    case SyncListAction.Clear:
+                        m_items.Clear();
+                        break;
+                }
+            }
         }
 
         public override SyncListPacket? SerializeSyncListPacket(
@@ -173,7 +177,7 @@ namespace GuyNetwork
             m_onActions.Add(new()
             {
                 index = index,
-                action = SyncListAction.Update,
+                action = SyncListAction.Set,
                 item = newItem,
             });
         }
@@ -218,7 +222,7 @@ namespace GuyNetwork
         public void RemoveAt(int index)
         {
             m_items.RemoveAt(index);
-            AddOnAction(SyncListAction.Remove, index, default, default);
+            AddOnAction(SyncListAction.RemoveAt, index, default, default);
         }
 
         public void Clear()

@@ -70,8 +70,8 @@ public class ModEntry : Mod
 
     private void GameLoop_UpdateTicking(object? sender, StardewModdingAPI.Events.UpdateTickingEventArgs e)
     {
-        server.PerformUpdate();
-        client?.PerformUpdate();
+        server.BeginUpdate();
+        client?.BeginUpdate();
 
         server.SendEvent("Game:Ticking", [Game1.ticks]);
         ObjectRenderer.sobjectRendererSync.OnTicking();

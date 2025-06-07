@@ -182,7 +182,7 @@ namespace GuyNetwork
         }
         public readonly FPSCounter fpsCounter = new();
         public int ticks { get; private set; } = 0;
-        public void PerformUpdate()
+        public void BeginUpdate()
         {
             ticks++;
 
