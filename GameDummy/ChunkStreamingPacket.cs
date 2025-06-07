@@ -1,6 +1,6 @@
 ﻿using MessagePack;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     [MessagePackObject]
     public sealed class ChunkStreamingPacket

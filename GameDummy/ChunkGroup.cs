@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     public sealed class ChunkGroup
     {

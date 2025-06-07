@@ -2,7 +2,7 @@
 using MessagePack.Resolvers;
 using MessagePack;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     public class CustomMsgPackFormatter
     {

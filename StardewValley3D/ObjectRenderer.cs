@@ -128,11 +128,22 @@ namespace StardewValley3D
                 layerDepth,
             ], LiteNetLib.DeliveryMethod.Unreliable);
 
-            // debug only
-            if (name.Contains("Furnace"))
-            {
-            }
+            sobjectRendererSync.OnDraw(
+                 spriteBatchDrawCallCounter,
+                guid,
+                textureFileName,
+                srcRect.ToRectSystem(),
+                position.ToVec2System(),
+                drawTilePos.ToVec2System(),
+                scale.ToVec2System(),
+                origin.ToVec2System(),
+                color.ToColorSystem(),
+                (int)effects,
+                layerDepth
+                );
         }
+
+        public static SObjectRendererSync sobjectRendererSync = new();
 
         public static SObject? currentDrawObject;
         public static bool IsDisableDrawToGame;

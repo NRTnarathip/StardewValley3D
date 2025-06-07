@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     public abstract class BaseAnnotationAttribute : Attribute
     {

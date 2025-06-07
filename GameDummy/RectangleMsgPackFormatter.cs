@@ -3,7 +3,7 @@ using MessagePack.Formatters;
 using System.Drawing;
 using System;
 
-namespace GameDummy
+namespace GuyNetwork
 {
 
     public class RectangleMsgPackFormatter : IMessagePackFormatter<Rectangle>

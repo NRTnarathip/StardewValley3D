@@ -1,32 +1,16 @@
-﻿using GameDummy;
-using LiteNetLib.Utils;
+﻿using GuyNetwork;
 using MessagePack;
 using System.Reflection;
 
-namespace GameDummy
+namespace GuyNetwork
 {
-    public struct GeneralObjectPacket : INetSerializable
+    public static class MyMessagePackSerializerOptions
     {
-        public string typeFullName;
-        public byte[] bytes;
-
-        public void Deserialize(NetDataReader reader)
-        {
-            typeFullName = reader.GetString();
-
-            int byteLength = reader.GetInt();
-            bytes = new byte[byteLength];
-            reader.GetBytes(bytes, byteLength);
-        }
-
-        public void Serialize(NetDataWriter writer)
-        {
-            writer.Put(typeFullName);
-            writer.Put(bytes.Length);
-            writer.Put(bytes);
-        }
+        public readonly static MessagePackSerializerOptions DefaultOption
+             = MessagePackSerializerOptions.Standard
+                .WithCompression(MessagePackCompression.Lz4BlockArray)
+                .WithResolver(CustomMsgPackFormatter.resolver);
     }
-
     public sealed class MessageEventPacket
     {
         public string name { get; set; }
@@ -41,7 +25,8 @@ namespace GameDummy
             {
                 var arg = args[i];
                 var valType = TypeFinder.GetTypeFromFullName(arg.typeFullName);
-                var val = MessagePackSerializer.Deserialize(valType, arg.bytes, ArgsSerializerOption);
+                var val = MessagePackSerializer.Deserialize(valType, arg.bytes,
+                    MyMessagePackSerializerOptions.DefaultOption);
                 latestUnpackArgs[i] = val;
             }
 
@@ -59,7 +44,7 @@ namespace GameDummy
                 args[i] = new()
                 {
                     typeFullName = valType.FullName,
-                    bytes = MessagePackSerializer.Serialize(valType, val, ArgsSerializerOption)
+                    bytes = MessagePackSerializer.Serialize(valType, val, MyMessagePackSerializerOptions.DefaultOption)
                 };
 
                 TotalArgsBytes += args[i].bytes.Length;
@@ -68,10 +53,6 @@ namespace GameDummy
 
         public int TotalArgsBytes { get; private set; }
 
-        public readonly static MessagePackSerializerOptions ArgsSerializerOption
-             = MessagePackSerializerOptions.Standard
-                .WithCompression(MessagePackCompression.Lz4BlockArray)
-                .WithResolver(CustomMsgPackFormatter.resolver);
 
     }
 }

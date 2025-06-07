@@ -2,7 +2,7 @@
 using MessagePack.Formatters;
 using System.Numerics;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     public class Vector2MsgPackFormatter : IMessagePackFormatter<Vector2>
     {

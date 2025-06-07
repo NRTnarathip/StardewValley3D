@@ -1,4 +1,4 @@
-﻿using GameDummy;
+﻿using GuyNetwork;
 using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
 using SkiaSharp;
@@ -74,6 +74,7 @@ public class ModEntry : Mod
         client?.PerformUpdate();
 
         server.SendEvent("Game:Ticking", [Game1.ticks]);
+        ObjectRenderer.sobjectRendererSync.OnTicking();
     }
 
     private void GameLoop_UpdateTicked(object? sender, StardewModdingAPI.Events.UpdateTickedEventArgs e)
@@ -154,6 +155,7 @@ public class ModEntry : Mod
 
     private void Display_Rendered(object? sender, StardewModdingAPI.Events.RenderedEventArgs e)
     {
+        ObjectRenderer.sobjectRendererSync.OnDisplayRendered();
     }
 
     int lastSendScreenBufferHash = 0;

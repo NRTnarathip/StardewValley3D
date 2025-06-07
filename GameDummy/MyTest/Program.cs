@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     static class Program
     {
@@ -19,18 +20,49 @@ namespace GameDummy
                     {
                         return;
                     }
+                    var syncListManager = server.syncListManager;
+                    SyncList<string> players = new("players");
+                    syncListManager.RegisterSyncList(players);
 
-                    var streaming = new BufferStreaming("Game.Renderer", server);
+                    players.Add("Guy");
+                    players.Add("Hello");
+                    players.Add("World");
+
+                    var msg = new List<string>();
 
                     var random = new Random();
+
                     while (true)
                     {
                         try
                         {
+                            // begin frame
                             server.PerformUpdate();
-                            var screenBytes = new byte[50_000 + (int)(random.NextSingle() * 100_000)];
-                            streaming.SendToAll(screenBytes);
-                            await Task.Delay(1);
+
+                            // game ticking
+                            var randValue = random.NextDouble();
+                            if (randValue <= 0.55)
+                            {
+                                players.Add($"new random:{randValue}");
+                            }
+                            else
+                            {
+                                if (players.Count >= 3)
+                                {
+                                    var item = players[2];
+                                    players.Remove(item);
+                                }
+                            }
+
+                            if (server.fpsCounter.isNewFPS)
+                            {
+                                server.Log("server players: " + players.Count);
+                            }
+
+                            // end ticked
+                            server.EndUpdate();
+
+                            await Task.Delay(16);
                         }
                         catch (Exception ex)
                         {
@@ -51,26 +83,25 @@ namespace GameDummy
                     var client = new BaseAppNetwork(false);
                     client.Start();
 
-                    var streaming = new BufferStreaming("Game.Renderer", client);
-                    var streamingFPSCounter = new FPSCounter();
-                    streaming.OnBufferCompleted += (streaming) =>
-                    {
-                        streamingFPSCounter.Update();
-                        if (streamingFPSCounter.isNewFPS)
-                        {
-                            Console.WriteLine("fps: " + streamingFPSCounter.fps);
-                        }
-                    };
+                    var syncListManager = client.syncListManager;
+                    var players = new SyncList<string>("players");
+                    syncListManager.RegisterSyncList(players);
 
                     while (true)
                     {
                         try
                         {
+                            // begin frame
                             client.PerformUpdate();
+
+                            // ticking
                             if (client.fpsCounter.isNewFPS)
                             {
-                                Console.WriteLine("client fps: " + client.fpsCounter.fps);
+                                client.Log("total players: " + players.Count);
                             }
+
+                            //end update
+                            client.EndUpdate();
 
                             await Task.Delay(1);
                         }

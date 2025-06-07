@@ -8,7 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     public class BaseAppNetwork : INetEventListener
     {
@@ -16,9 +16,10 @@ namespace GameDummy
         public const string address = "localhost";
 
         public NetManager netManager { get; private set; }
-        NetPacketProcessor packetProcessor = new();
-        readonly bool isServer;
-        readonly bool isClient;
+        public readonly NetPacketProcessor packetProcessor = new();
+        public readonly bool isServer;
+        public readonly bool isClient;
+        public readonly SyncListManager syncListManager;
 
         public BaseAppNetwork(bool isServer)
         {
@@ -37,6 +38,9 @@ namespace GameDummy
             // registry first!!
             packetProcessor.RegisterNestedType<GeneralObjectPacket>();
             packetProcessor.SubscribeReusable<MessageEventPacket, NetPeer>(HandleOnMessageEventRecive);
+
+            // addon
+            syncListManager = new(this);
         }
 
         public bool Start()
@@ -57,6 +61,11 @@ namespace GameDummy
 
             Log("app started");
             return true;
+        }
+
+        public void SendToAll(NetDataWriter writer, DeliveryMethod deliveryMethod)
+        {
+            netManager.SendToAll(writer, deliveryMethod);
         }
 
         List<ObjectEnableAnnotation> objectListBindAnnotation = new();
@@ -175,9 +184,17 @@ namespace GameDummy
         public int ticks { get; private set; } = 0;
         public void PerformUpdate()
         {
-            netManager.PollEvents();
             ticks++;
+
+            netManager.PollEvents();
+            syncListManager.PollEvents();
+
             fpsCounter.Update();
+        }
+
+        public void EndUpdate()
+        {
+            syncListManager.EndUpdate();
         }
 
         public void OnConnectionRequest(ConnectionRequest request)
@@ -186,9 +203,22 @@ namespace GameDummy
             request.Accept();
             Log(" accept it!");
         }
+
+        public NetPeer lastPeerConnected { get; private set; }
+        public NetPeer firstPeerConnnected { get; private set; }
+        public bool isConncetedToServer { get; private set; }
         public void OnPeerConnected(NetPeer peer)
         {
-            Log("on peer connected: " + peer.Id);
+            if (firstPeerConnnected is null)
+            {
+                firstPeerConnnected = peer;
+            }
+
+            lastPeerConnected = peer;
+            if (isClient)
+            {
+                isConncetedToServer = true;
+            }
         }
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {

@@ -17,7 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\GameDummy\GameDummy.csproj" />
+		<ProjectReference Include="..\GameDummy\GuyNetwork.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Krafs.Publicizer" Version="2.2.1">

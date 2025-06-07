@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 
-namespace GameDummy
+namespace GuyNetwork
 {
     public class ColorMsgPackFormatter : IMessagePackFormatter<System.Drawing.Color>
     {
